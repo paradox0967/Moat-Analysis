@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Universal Financial Moat Analysis Tool</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); padding:20px; min-height:100vh; }
+    .container { max-width:1600px; margin:0 auto; background:#fff; border-radius:20px; box-shadow:0 20px 60px rgba(0,0,0,.3); overflow:hidden; }
+    .header { background:linear-gradient(135deg,#2c3e50 0%,#3498db 100%); color:#fff; padding:30px; text-align:center; }
+    .header h1 { font-size:2.5em; margin-bottom:10px; }
+    .header p { font-size:1.1em; opacity:.9; }
+    .company-input { background:#f8f9fa; padding:20px; border-bottom:2px solid #dee2e6; }
+    .company-input-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:15px; margin-bottom:15px; }
+    .company-input-item { display:flex; flex-direction:column; }
+    .company-input-item label { font-weight:600; margin-bottom:5px; color:#495057; font-size:14px; }
+    .company-input-item input,.company-input-item select { padding:8px; border:2px solid #ced4da; border-radius:6px; font-size:14px; transition:border-color .3s; }
+    .company-input-item input:focus,.company-input-item select:focus { outline:none; border-color:#3498db; box-shadow:0 0 0 3px rgba(52,152,219,.1); }
+    .action-buttons { display:flex; gap:10px; flex-wrap:wrap; }
+    .btn { padding:10px 20px; border:none; border-radius:6px; font-size:14px; font-weight:600; cursor:pointer; transition:all .3s; }
+    .btn-primary { background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); color:#fff; }
+    .btn-primary:hover { transform:translateY(-2px); box-shadow:0 5px 15px rgba(102,126,234,.4); }
+    .btn-secondary { background:#6c757d; color:#fff; }
+    .btn-success { background:#28a745; color:#fff; }
+    .btn-warning { background:#ffc107; color:#212529; }
+    .btn-danger { background:#dc3545; color:#fff; }
+    .btn-info { background:#17a2b8; color:#fff; }
+    .tabs { display:flex; background:#34495e; overflow-x:auto; }
+    .tab { padding:15px 25px; background:none; border:none; color:#fff; cursor:pointer; font-size:14px; transition:all .3s; white-space:nowrap; border-bottom:3px solid transparent; }
+    .tab:hover { background:rgba(255,255,255,.1); }
+    .tab.active { background:#2c3e50; border-bottom:3px solid #3498db; }
+    .content { padding:20px; overflow-x:auto; }
+    .sheet { display:none; animation:fadeIn .5s ease; }
+    .sheet.active { display:block; }
+    @keyframes fadeIn { from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
+    table { width:100%; border-collapse:collapse; font-size:12px; margin-top:10px; }
+    th { background:linear-gradient(135deg,#3498db,#2c3e50); color:#fff; padding:12px 8px; text-align:left; font-weight:600; position:sticky; top:0; z-index:10; }
+    td { padding:8px; border-bottom:1px solid #e0e0e0; }
+    tr:hover { background:#f8f9fa; }
+    .editable-input { width:90px; padding:4px; border:1px solid #ced4da; border-radius:4px; font-size:12px; text-align:right; }
+    .editable-input:focus { outline:none; border-color:#3498db; background:#fff; }
+    .calculated-cell { background:#f0f9ff; color:#0066cc; font-weight:500; }
+    .error-cell { background:#fee; color:#c00; }
+    .success-cell { background:#d4edda; color:#155724; }
+    .formula-note { background:#f8f9fa; border-left:4px solid #3498db; padding:15px; margin:20px 0; border-radius:4px; }
+    .formula-note h3 { color:#2c3e50; margin-bottom:10px; }
+    .metrics-summary { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:15px; margin:20px 0; }
+    .metric-card { background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); color:#fff; padding:20px; border-radius:10px; box-shadow:0 4px 6px rgba(0,0,0,.1); }
+    .metric-card h4 { font-size:14px; opacity:.9; margin-bottom:5px; }
+    .metric-card .value { font-size:28px; font-weight:bold; }
+    .metric-card .change { font-size:12px; margin-top:5px; opacity:.8; }
+    .metric-card.good { background:linear-gradient(135deg,#28a745,#20c997); }
+    .metric-card.warning { background:linear-gradient(135deg,#ffc107,#ff9800); }
+    .metric-card.bad { background:linear-gradient(135deg,#dc3545,#c82333); }
+    .info-box { background:#e3f2fd; border:2px solid #2196f3; border-radius:8px; padding:15px; margin:15px 0; }
+    .info-box p { color:#1976d2; font-size:14px; }
+    .scroll-wrapper { overflow-x:auto; margin:20px 0; }
+    .report-container { max-width:800px; margin:0 auto; padding:20px; background:#fff; }
+    .report-header { text-align:center; margin-bottom:30px; border-bottom:2px solid #2c3e50; padding-bottom:20px; }
+    .report-header h1 { color:#2c3e50; font-size:24px; margin-bottom:10px; }
+    .report-header .company-name { font-size:32px; color:#3498db; font-weight:bold; margin:10px 0; }
+    .report-header .date { color:#666; font-size:14px; }
+    .report-section { margin:25px 0; page-break-inside:avoid; }
+    .report-section h2 { color:#2c3e50; font-size:18px; margin-bottom:15px; border-bottom:1px solid #e0e0e0; padding-bottom:5px; }
+    .report-metrics { display:grid; grid-template-columns:1fr 1fr; gap:15px; margin:15px 0; }
+    .report-metric { padding:10px; background:#f8f9fa; border-radius:5px; }
+    .report-metric .label { font-size:12px; color:#666; margin-bottom:3px; }
+    .report-metric .value { font-size:20px; font-weight:bold; color:#2c3e50; }
+    .report-metric.highlight { background:linear-gradient(135deg,#e3f2fd,#bbdefb); border:1px solid #2196f3; }
+    .report-table { width:100%; border-collapse:collapse; margin:15px 0; font-size:11px; }
+    .report-table th { background:#34495e; color:#fff; padding:8px; text-align:left; }
+    .report-table td { padding:6px 8px; border-bottom:1px solid #e0e0e0; }
+    .report-table tr:nth-child(even) { background:#f8f9fa; }
+    .report-summary { background:#f0f9ff; border:2px solid #3498db; border-radius:8px; padding:15px; margin:20px 0; }
+    .report-summary h3 { color:#2c3e50; margin-bottom:10px; }
+    .report-summary ul { margin-left:20px; }
+    .report-summary li { margin:5px 0; color:#333; }
+    .moat-assessment { text-align:center; margin:30px 0; padding:20px; border-radius:10px; }
+    .moat-assessment.strong { background:linear-gradient(135deg,#d4edda,#c3e6cb); border:2px solid #28a745; }
+    .moat-assessment.moderate { background:linear-gradient(135deg,#fff3cd,#ffeaa7); border:2px solid #ffc107; }
+    .moat-assessment.weak { background:linear-gradient(135deg,#f8d7da,#f5c6cb); border:2px solid #dc3545; }
+    .moat-assessment h3 { font-size:24px; margin-bottom:10px; }
+    .report-footer { text-align:center; margin-top:40px; padding-top:20px; border-top:1px solid #e0e0e0; color:#666; font-size:12px; }
+    @media print {
+      body { background:#fff; padding:0; }
+      .container { box-shadow:none; border-radius:0; }
+      .company-input, .tabs, .action-buttons { display:none; }
+      .report-container { padding:0; }
+      .sheet { page-break-after:auto; }
+      .report-section { page-break-inside:avoid; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Universal Financial Moat Analysis Tool</h1>
+      <p>Analyze any company's competitive advantage and economic profit generation</p>
+    </div>
+    <div class="company-input">
+      <div class="company-input-grid">
+        <div class="company-input-item">
+          <label>Company Name/Ticker</label>
+          <input type="text" id="companyName" value="Enter Company Name"/>
+        </div>
+        <div class="company-input-item">
+          <label>Industry</label>
+          <input type="text" id="industry" value="Technology"/>
+        </div>
+        <div class="company-input-item">
+          <label>Currency</label>
+          <select id="currency">
+            <option value="$">USD ($)</option>
+            <option value="€">EUR (€)</option>
+            <option value="£">GBP (£)</option>
+            <option value="¥">JPY (¥)</option>
+          </select>
+        </div>
+        <div class="company-input-item">
+          <label>Data Units</label>
+          <select id="units">
+            <option value="1">Actual</option>
+            <option value="1000">Thousands</option>
+            <option value="1000000" selected>Millions</option>
+            <option value="1000000000">Billions</option>
+          </select>
+        </div>
+      </div>
+      <div class="info-box">
+        <p><strong>How to Save Your Work:</strong> Click "Save Analysis" to download your data as a file. Click "Load Analysis" to open a previously saved file. Use "Export CSV" to export data for use in other applications.</p>
+      </div>
+      <div class="action-buttons">
+        <button class="btn btn-success" onclick="window.moatAnalysis.addYear()">Add Year</button>
+        <button class="btn btn-danger" onclick="window.moatAnalysis.removeLastYear()">Remove Last Year</button>
+        <button class="btn btn-primary" onclick="window.moatAnalysis.recalculateAll()">Recalculate</button>
+        <button class="btn btn-secondary" onclick="window.moatAnalysis.saveAnalysis()">Save Analysis</button>
+        <button class="btn btn-secondary" onclick="document.getElementById('loadFile').click()">Load Analysis</button>
+        <input type="file" id="loadFile" style="display:none" accept=".json" onchange="window.moatAnalysis.loadAnalysis(event)">
+        <button class="btn btn-secondary" onclick="window.moatAnalysis.exportData()">Export CSV</button>
+        <button class="btn btn-info" onclick="window.moatAnalysis.printReport()">Print Report</button>
+      </div>
+    </div>
+
+<div class="tabs">
+      <button class="tab active" onclick="window.moatAnalysis.showSheet('input', this)">Input Data</button>
+      <button class="tab" onclick="window.moatAnalysis.showSheet('assumptions', this)">WACC Settings</button>
+      <button class="tab" onclick="window.moatAnalysis.showSheet('economic', this)">Economic Profit</button>
+      <button class="tab" onclick="window.moatAnalysis.showSheet('returns', this)">Returns</button>
+      <button class="tab" onclick="window.moatAnalysis.showSheet('margins', this)">Margins</button>
+      <button class="tab" onclick="window.moatAnalysis.showSheet('summary', this)">Dashboard</button>
+      <button class="tab" onclick="window.moatAnalysis.showSheet('report', this)">Report</button>
+    </div>
+
+    <div class="content">
+      <div id="input" class="sheet active">
+        <h2>Financial Input Data</h2>
+        <div class="scroll-wrapper">
+          <table id="inputTable">
+            <thead>
+              <tr>
+                <th>Year</th>
+                <th>Revenue</th>
+                <th>Operating Margin (%)</th>
+                <th>Operating Income</th>
+                <th>Net Income</th>
+                <th>Interest Expense</th>
+                <th>Tax Rate (%)</th>
+                <th>Working Capital</th>
+                <th>Long-Term Debt</th>
+                <th>Shareholder Equity</th>
+                <th>Shares Outstanding</th>
+                <th>Capital Spending per Share</th>
+                <th>CapEx</th>
+                <th>Depreciation</th>
+              </tr>
+            </thead>
+            <tbody id="inputTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="assumptions" class="sheet">
+        <h2>Cost of Capital Settings</h2>
+        <div class="formula-note">
+          <h3>CAPM Formula:</h3>
+          <p>Cost of Equity = Risk-Free Rate + Beta × (Market Return - Risk-Free Rate)</p>
+        </div>
+        <table style="max-width:600px;">
+          <tbody>
+            <tr>
+              <td style="padding:15px;"><strong>Risk-Free Rate:</strong></td>
+              <td style="padding:15px;">
+                <input type="number" id="riskFreeRate" value="4.5" step="0.1" style="width:100px;" onchange="window.moatAnalysis.recalculateAll()">%
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:15px;"><strong>Company Beta:</strong></td>
+              <td style="padding:15px;">
+                <input type="number" id="beta" value="1.0" step="0.01" style="width:100px;" onchange="window.moatAnalysis.recalculateAll()">
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:15px;"><strong>Market Return:</strong></td>
+              <td style="padding:15px;">
+                <input type="number" id="marketReturn" value="10.5" step="0.1" style="width:100px;" onchange="window.moatAnalysis.recalculateAll()">%
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:15px;"><strong>Cost of Equity (CAPM):</strong></td>
+              <td style="padding:15px;" class="calculated-cell">
+                <strong><span id="costOfEquity">10.5</span>%</strong>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div id="economic" class="sheet">
+        <h2>Economic Profit Analysis</h2>
+        <div class="scroll-wrapper">
+          <table id="economicTable">
+            <thead>
+              <tr>
+                <th>Year</th>
+                <th>NOPAT</th>
+                <th>Invested Capital</th>
+                <th>ROIC (%)</th>
+                <th>WACC (%)</th>
+                <th>Spread (%)</th>
+                <th>Economic Profit</th>
+              </tr>
+            </thead>
+            <tbody id="economicTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="returns" class="sheet">
+        <h2>Return Metrics</h2>
+        <div class="scroll-wrapper">
+          <table id="returnsTable">
+            <thead>
+              <tr>
+                <th>Year</th>
+                <th>ROE (%)</th>
+                <th>ROIC (%)</th>
+                <th>Revenue Growth (%)</th>
+                <th>Operating Income Growth (%)</th>
+                <th>Net Income Growth (%)</th>
+              </tr>
+            </thead>
+            <tbody id="returnsTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="margins" class="sheet">
+        <h2>Margin Analysis</h2>
+        <div class="scroll-wrapper">
+          <table id="marginsTable">
+            <thead>
+              <tr>
+                <th>Year</th>
+                <th>Operating Margin (%)</th>
+                <th>Net Margin (%)</th>
+                <th>EBITDA Margin (%)</th>
+              </tr>
+            </thead>
+            <tbody id="marginsTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="summary" class="sheet">
+        <h2>Executive Dashboard</h2>
+        <div class="metrics-summary" id="summaryMetrics"></div>
+        <div class="formula-note">
+          <h3>Key Insights</h3>
+          <ul id="keyInsights"></ul>
+        </div>
+      </div>
+
+      <div id="report" class="sheet">
+        <div class="report-container">
+          <div class="report-header">
+            <h1>Financial Moat Analysis Report</h1>
+            <div class="company-name" id="reportCompanyName">Company Name</div>
+            <div class="date" id="reportDate">Date</div>
+          </div>
+
+          <div class="report-section">
+            <h2>Executive Summary</h2>
+            <div id="reportExecutiveSummary"></div>
+          </div>
+
+          <div class="report-section">
+            <h2>Key Financial Metrics</h2>
+            <div class="report-metrics" id="reportKeyMetrics"></div>
+          </div>
+
+          <div class="report-section">
+            <h2>Competitive Advantage Assessment</h2>
+            <div id="reportMoatAssessment"></div>
+          </div>
+
+          <div class="report-section">
+            <h2>Historical Performance Trends</h2>
+            <table class="report-table" id="reportTrendsTable"></table>
+          </div>
+
+          <div class="report-section">
+            <h2>Profitability Analysis</h2>
+            <table class="report-table" id="reportProfitabilityTable"></table>
+          </div>
+
+          <div class="report-summary" id="reportSummaryBox">
+            <h3>Investment Considerations</h3>
+            <ul id="reportConsiderations"></ul>
+          </div>
+
+          <div class="report-footer">
+            <p>This report was generated using the Universal Financial Moat Analysis Tool</p>
+            <p id="reportFooterInfo"></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+window.moatAnalysis = (function() {
+  'use strict';
+
+  let companyData = [];
+  let waccSettings = { riskFreeRate: 4.5, beta: 1.0, marketReturn: 10.5 };
+
+  function initializeData() {
+    companyData = [];
+    const currentYear = new Date().getFullYear();
+    for (let i = 0; i < 5; i++) {
+      companyData.push({
+        year: currentYear - 4 + i,
+        revenue: 0,
+        operatingMargin: 0,
+        netIncome: 0,
+        interestExpense: 0,
+        taxRate: 25,
+        workingCapital: 0,
+        longTermDebt: 0,
+        shareholderEquity: 0,
+        sharesOutstanding: 0,
+        capexPerShare: 0,
+        depreciation: 0
+      });
+    }
+    renderInputTable();
+  }
+
+  function addYear() {
+    const lastYear = companyData.length > 0
+      ? companyData[companyData.length - 1].year + 1
+      : new Date().getFullYear();
+    companyData.push({
+      year: lastYear,
+      revenue: 0,
+      operatingMargin: 0,
+      netIncome: 0,
+      interestExpense: 0,
+      taxRate: 25,
+      workingCapital: 0,
+      longTermDebt: 0,
+      shareholderEquity: 0,
+      sharesOutstanding: 0,
+      capexPerShare: 0,
+      depreciation: 0
+    });
+    renderInputTable();
+  }
+
+  function removeLastYear() {
+    if (companyData.length > 1) {
+      if (confirm('Are you sure you want to remove the last year of data?')) {
+        companyData.pop();
+        renderInputTable();
+        recalculateAll();
+      }
+    }
+  }
+
+  function updateData(index, field, value) {
+    companyData[index][field] = parseFloat(value) || 0;
+    recalculateAll();
+  }
+
+  function renderInputTable() {
+    const tbody = document.getElementById('inputTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    companyData.forEach((row, index) => {
+      const opIncome = (row.revenue || 0) * ((row.operatingMargin || 0) / 100);
+      const capex = (row.capexPerShare || 0) * (row.sharesOutstanding || 0);
+
+      const tr = document.createElement('tr');
+      tr.innerHTML =
+        `<td><input type="number" class="editable-input" value="${row.year}" onchange="window.moatAnalysis.updateData(${index}, 'year', this.value)"></td>` +
+        `<td><input type="number" class="editable-input" value="${row.revenue}" onchange="window.moatAnalysis.updateData(${index}, 'revenue', this.value)"></td>` +
+        `<td><input type="number" class="editable-input" value="${row.operatingMargin}" step="0.1" onchange="window.moatAnalysis.updateData(${index}, 'operatingMargin', this.value)"></td>` +
+        `<td class="calculated-cell" title="Revenue × Operating Margin">${opIncome.toFixed(0)}</td>` +
+        `<td><input type="number" class="editable-input" value="${row.netIncome}" onchange="window.moatAnalysis.updateData(${index}, 'netIncome', this.value)"></td>` +
+        `<td><input type="number" class="editable-input" value="${row.interestExpense}" onchange="window.moatAnalysis.updateData(${index}, 'interestExpense', this.value)"></td>` +
+        `<td><input type="number" class="editable-input" value="${row.taxRate}" step="0.1" onchange="window.moatAnalysis.updateData(${index}, 'taxRate', this.value)"></td>` +
+        `<td><input type="number" class="editable-input" value="${row.workingCapital}" onchange="window.moatAnalysis.updateData(${index}, 'workingCapital', this.value)"></td>` +
+        `<td><input type="number" class="editable-input" value="${row.longTermDebt}" onchange="window.moatAnalysis.updateData(${index}, 'longTermDebt', this.value)"></td>` +
+        `<td><input type="number" class="editable-input" value="${row.shareholderEquity}" onchange="window.moatAnalysis.updateData(${index}, 'shareholderEquity', this.value)"></td>` +
+        `<td><input type="number" class="editable-input" value="${row.sharesOutstanding}" onchange="window.moatAnalysis.updateData(${index}, 'sharesOutstanding', this.value)"></td>` +
+        `<td><input type="number" class="editable-input" value="${row.capexPerShare}" step="0.01" onchange="window.moatAnalysis.updateData(${index}, 'capexPerShare', this.value)"></td>` +
+        `<td class="calculated-cell" title="Shares × CapEx/Share">${capex.toFixed(0)}</td>` +
+        `<td><input type="number" class="editable-input" value="${row.depreciation}" onchange="window.moatAnalysis.updateData(${index}, 'depreciation', this.value)"></td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function calculateCostOfEquity() {
+    const marketPremium = (waccSettings.marketReturn || 0) - (waccSettings.riskFreeRate || 0);
+    return (waccSettings.riskFreeRate || 0) + (waccSettings.beta || 0) * marketPremium;
+  }
+
+  function showSheet(sheetId, tabElement) {
+    document.querySelectorAll('.sheet').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    const targetSheet = document.getElementById(sheetId);
+    if (targetSheet) targetSheet.classList.add('active');
+    if (tabElement) tabElement.classList.add('active');
+    
+    if (sheetId === 'report') {
+      generateReport();
+    }
+  }
+
+  function saveAnalysis() {
+    try {
+      const analysisData = {
+        metadata: {
+          companyName: document.getElementById('companyName').value || 'Company',
+          industry: document.getElementById('industry').value || '',
+          currency: document.getElementById('currency').value || '$',
+          units: document.getElementById('units').value || '1000000',
+          dateSaved: new Date().toISOString()
+        },
+        waccSettings: waccSettings,
+        financialData: companyData
+      };
+      const companyName = (analysisData.metadata.companyName || 'Company').replace(/[^a-z0-9]/gi, '_');
+      const filename = `${companyName}_Analysis.json`;
+      const dataStr = JSON.stringify(analysisData, null, 2);
+      const blob = new Blob([dataStr], { type: 'application/json' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      alert('Analysis saved as ' + filename);
+    } catch (error) {
+      console.error('Save error:', error);
+      alert('Error saving file. Please try again.');
+    }
+  }
+
+  function loadAnalysis(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const analysisData = JSON.parse(e.target.result);
+        if (analysisData.metadata) {
+          document.getElementById('companyName').value = analysisData.metadata.companyName || '';
+          document.getElementById('industry').value = analysisData.metadata.industry || '';
+          document.getElementById('currency').value = analysisData.metadata.currency || '$';
+          document.getElementById('units').value = analysisData.metadata.units || '1000000';
+        }
+        if (analysisData.waccSettings) {
+          document.getElementById('riskFreeRate').value = analysisData.waccSettings.riskFreeRate ?? 4.5;
+          document.getElementById('beta').value = analysisData.waccSettings.beta ?? 1.0;
+          document.getElementById('marketReturn').value = analysisData.waccSettings.marketReturn ?? 10.5;
+          waccSettings = analysisData.waccSettings;
+        }
+        if (analysisData.financialData) {
+          companyData = analysisData.financialData.map(r => ({
+            year: r.year ?? 0,
+            revenue: r.revenue ?? 0,
+            operatingMargin: r.operatingMargin ?? 0,
+            netIncome: r.netIncome ?? 0,
+            interestExpense: r.interestExpense ?? 0,
+            taxRate: r.taxRate ?? 25,
+            workingCapital: r.workingCapital ?? 0,
+            longTermDebt: r.longTermDebt ?? 0,
+            shareholderEquity: r.shareholderEquity ?? 0,
+            sharesOutstanding: r.sharesOutstanding ?? 0,
+            capexPerShare: r.capexPerShare ?? 0,
+            depreciation: r.depreciation ?? 0
+          }));
+        }
+        renderInputTable();
+        recalculateAll();
+        alert('Analysis loaded successfully!');
+      } catch (error) {
+        console.error('Load error:', error);
+        alert('Error loading file. Please ensure it is a valid analysis file.');
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  function recalculateAll() {
+    const rf = document.getElementById('riskFreeRate');
+    const b  = document.getElementById('beta');
+    const mr = document.getElementById('marketReturn');
+    if (rf) waccSettings.riskFreeRate = parseFloat(rf.value) || 0;
+    if (b)  waccSettings.beta        = parseFloat(b.value)  || 0;
+    if (mr) waccSettings.marketReturn= parseFloat(mr.value) || 0;
+
+    const coeSpan = document.getElementById('costOfEquity');
+    if (coeSpan) coeSpan.textContent = calculateCostOfEquity().toFixed(1);
+
+    renderInputTable();
+    calculateEconomicProfit();
+    calculateReturns();
+    calculateMargins();
+    updateSummary();
+  }
+
+  function derivedOperatingIncome(row) {
+    return (row.revenue || 0) * ((row.operatingMargin || 0) / 100);
+  }
+  
+  function derivedCapex(row) {
+    return (row.capexPerShare || 0) * (row.sharesOutstanding || 0);
+  }
+
+  function computeYearCalcs(row) {
+    const nopat = (row.netIncome || 0) + (row.interestExpense || 0) * (1 - (row.taxRate || 0)/100);
+    const investedCapital = (row.longTermDebt || 0) + (row.shareholderEquity || 0);
+    const roic = investedCapital > 0 ? (nopat / investedCapital * 100) : 0;
+
+    const totalCapital = investedCapital;
+    const debtWeight = totalCapital > 0 ? (row.longTermDebt || 0) / totalCapital : 0;
+    const equityWeight = totalCapital > 0 ? (row.shareholderEquity || 0) / totalCapital : 1;
+    const costOfDebt = (row.longTermDebt || 0) > 0 ? ((row.interestExpense || 0) / (row.longTermDebt || 1) * 100) : 0;
+    const wacc = (debtWeight * costOfDebt * (1 - (row.taxRate || 0)/100)) + (equityWeight * calculateCostOfEquity());
+    const spread = roic - wacc;
+    const economicProfit = nopat - (investedCapital * wacc / 100);
+
+    return { nopat, investedCapital, roic, wacc, spread, economicProfit };
+  }
+
+  function calculateEconomicProfit() {
+    const tbody = document.getElementById('economicTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    companyData.forEach((row) => {
+      const { nopat, investedCapital, roic, wacc, spread, economicProfit } = computeYearCalcs(row);
+      const tr = document.createElement('tr');
+      tr.innerHTML =
+        `<td>${row.year}</td>` +
+        `<td>${nopat.toFixed(0)}</td>` +
+        `<td>${investedCapital.toFixed(0)}</td>` +
+        `<td class="${roic > wacc ? 'success-cell' : 'error-cell'}">${roic.toFixed(1)}%</td>` +
+        `<td>${wacc.toFixed(1)}%</td>` +
+        `<td class="${spread > 0 ? 'success-cell' : 'error-cell'}">${spread.toFixed(1)}%</td>` +
+        `<td class="${economicProfit > 0 ? 'success-cell' : 'error-cell'}">${economicProfit.toFixed(0)}</td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function pctGrowth(curr, prev) {
+    if (prev === 0 || prev === null || prev === undefined) return '';
+    return ((curr - prev) / Math.abs(prev)) * 100;
+  }
+
+  function calculateReturns() {
+    const tbody = document.getElementById('returnsTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    companyData.forEach((row, i) => {
+      const prev = i > 0 ? companyData[i - 1] : null;
+      const roe = (row.shareholderEquity || 0) > 0 ? ((row.netIncome || 0) / row.shareholderEquity * 100) : 0;
+      const { roic } = computeYearCalcs(row);
+      const revGrowth  = prev ? pctGrowth(row.revenue || 0, prev.revenue || 0) : '';
+      const opIncCurr  = derivedOperatingIncome(row);
+      const opIncPrev  = prev ? derivedOperatingIncome(prev) : null;
+      const opGrowth   = prev ? pctGrowth(opIncCurr, opIncPrev) : '';
+      const niGrowth   = prev ? pctGrowth(row.netIncome || 0, prev.netIncome || 0) : '';
+
+      const tr = document.createElement('tr');
+      tr.innerHTML =
+        `<td>${row.year}</td>` +
+        `<td>${roe.toFixed(1)}%</td>` +
+        `<td>${roic.toFixed(1)}%</td>` +
+        `<td>${revGrowth === '' ? '' : revGrowth.toFixed(1) + '%'}</td>` +
+        `<td>${opGrowth  === '' ? '' : opGrowth.toFixed(1)  + '%'}</td>` +
+        `<td>${niGrowth  === '' ? '' : niGrowth.toFixed(1)  + '%'}</td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function calculateMargins() {
+    const tbody = document.getElementById('marginsTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    companyData.forEach((row) => {
+      const opMargin = row.operatingMargin || 0;
+      const netMargin = (row.revenue || 0) > 0 ? ((row.netIncome || 0) / row.revenue * 100) : 0;
+      const ebitda = derivedOperatingIncome(row) + (row.depreciation || 0);
+      const ebitdaMargin = (row.revenue || 0) > 0 ? (ebitda / row.revenue * 100) : 0;
+
+      const tr = document.createElement('tr');
+      tr.innerHTML =
+        `<td>${row.year}</td>` +
+        `<td>${opMargin.toFixed(1)}%</td>` +
+        `<td>${netMargin.toFixed(1)}%</td>` +
+        `<td>${ebitdaMargin.toFixed(1)}%</td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function updateSummary() {
+    const metricsDiv = document.getElementById('summaryMetrics');
+    const insightsList = document.getElementById('keyInsights');
+    if (!metricsDiv || !insightsList || companyData.length === 0) return;
+
+    const latestYear = companyData[companyData.length - 1];
+    const { roic, wacc, economicProfit } = computeYearCalcs(latestYear);
+    const costOfEquity = calculateCostOfEquity();
+    
+    const roicClass = roic > wacc ? 'good' : roic > wacc * 0.8 ? 'warning' : 'bad';
+    const epClass = economicProfit > 0 ? 'good' : economicProfit > -100 ? 'warning' : 'bad';
+
+    metricsDiv.innerHTML =
+      `<div class="metric-card ${roicClass}"><h4>ROIC</h4><div class="value">${roic.toFixed(1)}%</div><div class="change">vs WACC: ${wacc.toFixed(1)}%</div></div>` +
+      `<div class="metric-card ${epClass}"><h4>Economic Profit</h4><div class="value">${economicProfit.toFixed(0)}</div><div class="change">${economicProfit > 0 ? 'Value Creating' : 'Value Destroying'}</div></div>` +
+      `<div class="metric-card"><h4>Cost of Equity</h4><div class="value">${costOfEquity.toFixed(1)}%</div><div class="change">Beta: ${waccSettings.beta}</div></div>`;
+
+    const insights = [];
+    insights.push(roic > wacc ? 'Company is creating value with ROIC exceeding WACC'
+                              : 'Company is destroying value with ROIC below WACC');
+    insights.push(economicProfit > 0 ? 'Positive economic profit indicates competitive advantage'
+                                     : 'Negative economic profit suggests lack of economic moat');
+    
+    const avgROIC = companyData.reduce((sum, row) => sum + computeYearCalcs(row).roic, 0) / companyData.length;
+    if (avgROIC > 15) {
+      insights.push('Strong average ROIC suggests durable competitive advantages');
+    }
+    
+    const latestMargin = latestYear.operatingMargin || 0;
+    if (latestMargin > 20) {
+      insights.push('High operating margins indicate pricing power or cost advantages');
+    }
+    
+    insightsList.innerHTML = insights.map(i => `<li>${i}</li>`).join('');
+  }
+
+  function generateReport() {
+    if (companyData.length === 0) return;
+    
+    const companyName = document.getElementById('companyName').value || 'Company';
+    const industry = document.getElementById('industry').value || 'Not specified';
+    const currency = document.getElementById('currency').value || '$';
+    const units = document.getElementById('units').value || '1000000';
+    const unitLabel = units === '1000000000' ? 'Billions' : units === '1000000' ? 'Millions' : units === '1000' ? 'Thousands' : '';
+    
+    document.getElementById('reportCompanyName').textContent = companyName;
+    document.getElementById('reportDate').textContent = new Date().toLocaleDateString('en-US', { 
+      year: 'numeric', month: 'long', day: 'numeric' 
+    });
+    
+    const latestYear = companyData[companyData.length - 1];
+    const firstYear = companyData[0];
+    const { roic, wacc, economicProfit, spread } = computeYearCalcs(latestYear);
+    const roe = (latestYear.shareholderEquity || 0) > 0 ? ((latestYear.netIncome || 0) / latestYear.shareholderEquity * 100) : 0;
+    const netMargin = (latestYear.revenue || 0) > 0 ? ((latestYear.netIncome || 0) / latestYear.revenue * 100) : 0;
+    
+    let avgROIC = 0, avgWACC = 0, avgSpread = 0, avgEP = 0;
+    companyData.forEach(row => {
+      const calcs = computeYearCalcs(row);
+      avgROIC += calcs.roic;
+      avgWACC += calcs.wacc;
+      avgSpread += calcs.spread;
+      avgEP += calcs.economicProfit;
+    });
+    avgROIC /= companyData.length;
+    avgWACC /= companyData.length;
+    avgSpread /= companyData.length;
+    avgEP /= companyData.length;
+    
+    const revCAGR = firstYear.revenue > 0 ? 
+      (Math.pow((latestYear.revenue || 0) / firstYear.revenue, 1 / (companyData.length - 1)) - 1) * 100 : 0;
+    
+    const summaryDiv = document.getElementById('reportExecutiveSummary');
+    summaryDiv.innerHTML = `
+      <p><strong>${companyName}</strong> operates in the <strong>${industry}</strong> industry. 
+      This analysis covers ${companyData.length} years of financial data from ${firstYear.year} to ${latestYear.year}.</p>
+      <p>The company currently generates a Return on Invested Capital (ROIC) of <strong>${roic.toFixed(1)}%</strong>, 
+      ${roic > wacc ? 'exceeding' : 'below'} its Weighted Average Cost of Capital (WACC) of <strong>${wacc.toFixed(1)}%</strong>, 
+      resulting in ${economicProfit > 0 ? 'positive' : 'negative'} economic profit generation.</p>
+    `;
+    
+    const metricsDiv = document.getElementById('reportKeyMetrics');
+    metricsDiv.innerHTML = `
+      <div class="report-metric highlight">
+        <div class="label">ROIC (Latest)</div>
+        <div class="value">${roic.toFixed(1)}%</div>
+      </div>
+      <div class="report-metric highlight">
+        <div class="label">WACC (Latest)</div>
+        <div class="value">${wacc.toFixed(1)}%</div>
+      </div>
+      <div class="report-metric">
+        <div class="label">Spread (ROIC-WACC)</div>
+        <div class="value">${spread.toFixed(1)}%</div>
+      </div>
+      <div class="report-metric">
+        <div class="label">Economic Profit</div>
+        <div class="value">${currency}${economicProfit.toFixed(0)} ${unitLabel}</div>
+      </div>
+      <div class="report-metric">
+        <div class="label">Operating Margin</div>
+        <div class="value">${latestYear.operatingMargin.toFixed(1)}%</div>
+      </div>
+      <div class="report-metric">
+        <div class="label">Net Margin</div>
+        <div class="value">${netMargin.toFixed(1)}%</div>
+      </div>
+      <div class="report-metric">
+        <div class="label">ROE</div>
+        <div class="value">${roe.toFixed(1)}%</div>
+      </div>
+      <div class="report-metric">
+        <div class="label">Revenue CAGR</div>
+        <div class="value">${revCAGR.toFixed(1)}%</div>
+      </div>
+    `;
+    
+    const moatDiv = document.getElementById('reportMoatAssessment');
+    let moatClass = 'weak';
+    let moatText = 'Weak Economic Moat';
+    let moatDescription = '';
+    
+    if (avgSpread > 5 && avgROIC > 15) {
+      moatClass = 'strong';
+      moatText = 'Strong Economic Moat';
+      moatDescription = 'The company demonstrates strong competitive advantages with consistently high returns on capital exceeding cost of capital.';
+    } else if (avgSpread > 0 && avgROIC > 10) {
+      moatClass = 'moderate';
+      moatText = 'Moderate Economic Moat';
+      moatDescription = 'The company shows moderate competitive advantages with returns exceeding cost of capital.';
+    } else {
+      moatDescription = 'The company struggles to generate returns above its cost of capital, indicating limited competitive advantages.';
+    }
+    
+    moatDiv.innerHTML = `
+      <div class="moat-assessment ${moatClass}">
+        <h3>${moatText}</h3>
+        <p>${moatDescription}</p>
+        <p>Average ROIC: <strong>${avgROIC.toFixed(1)}%</strong> | Average Spread: <strong>${avgSpread.toFixed(1)}%</strong></p>
+      </div>
+    `;
+    
+    const trendsTable = document.getElementById('reportTrendsTable');
+    let trendsHTML = '<thead><tr><th>Year</th><th>Revenue</th><th>ROIC (%)</th><th>WACC (%)</th><th>Economic Profit</th></tr></thead><tbody>';
+    companyData.forEach(row => {
+      const calcs = computeYearCalcs(row);
+      trendsHTML += `<tr>
+        <td>${row.year}</td>
+        <td>${currency}${row.revenue.toFixed(0)} ${unitLabel}</td>
+        <td>${calcs.roic.toFixed(1)}%</td>
+        <td>${calcs.wacc.toFixed(1)}%</td>
+        <td>${currency}${calcs.economicProfit.toFixed(0)} ${unitLabel}</td>
+      </tr>`;
+    });
+    trendsHTML += '</tbody>';
+    trendsTable.innerHTML = trendsHTML;
+    
+    const profTable = document.getElementById('reportProfitabilityTable');
+    let profHTML = '<thead><tr><th>Year</th><th>Operating Margin</th><th>Net Margin</th><th>ROE</th></tr></thead><tbody>';
+    companyData.forEach(row => {
+      const nm = (row.revenue || 0) > 0 ? ((row.netIncome || 0) / row.revenue * 100) : 0;
+      const re = (row.shareholderEquity || 0) > 0 ? ((row.netIncome || 0) / row.shareholderEquity * 100) : 0;
+      profHTML += `<tr>
+        <td>${row.year}</td>
+        <td>${row.operatingMargin.toFixed(1)}%</td>
+        <td>${nm.toFixed(1)}%</td>
+        <td>${re.toFixed(1)}%</td>
+      </tr>`;
+    });
+    profHTML += '</tbody>';
+    profTable.innerHTML = profHTML;
+    
+    const considerations = [];
+    if (roic > wacc) {
+      considerations.push('Company is currently creating shareholder value with ROIC exceeding WACC');
+    } else {
+      considerations.push('Company is currently destroying value with ROIC below WACC');
+    }
+    
+    if (avgEP > 0) {
+      considerations.push('Positive average economic profit suggests sustainable competitive advantages');
+    }
+    
+    if (revCAGR > 10) {
+      considerations.push('Strong revenue growth trajectory with ' + revCAGR.toFixed(1) + '% CAGR');
+    }
+    
+    if (latestYear.operatingMargin > 20) {
+      considerations.push('High operating margins indicate strong pricing power or cost efficiency');
+    }
+    
+    const debtToEquity = (latestYear.longTermDebt || 0) / (latestYear.shareholderEquity || 1);
+    if (debtToEquity < 0.5) {
+      considerations.push('Conservative capital structure with low financial leverage');
+    } else if (debtToEquity > 2) {
+      considerations.push('High financial leverage may pose risks in economic downturns');
+    }
+    
+    document.getElementById('reportConsiderations').innerHTML = 
+      considerations.map(c => `<li>${c}</li>`).join('');
+    
+    document.getElementById('reportFooterInfo').textContent = 
+      `Industry: ${industry} | Analysis Period: ${firstYear.year}-${latestYear.year} | Currency: ${currency} (${unitLabel})`;
+  }
+
+  function printReport() {
+    showSheet('report');
+    setTimeout(() => {
+      window.print();
+    }, 500);
+  }
+
+  function escapeCSV(v) {
+    const s = String(v ?? '');
+    if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+    return s;
+  }
+  
+  function buildCSVSection(title, headers, rows) {
+    let out = '';
+    out += `# ${title}\n`;
+    if (headers && headers.length) out += headers.map(escapeCSV).join(',') + '\n';
+    rows.forEach(r => { out += r.map(escapeCSV).join(',') + '\n'; });
+    out += '\n';
+    return out;
+  }
+  
+  function exportData() {
+    recalculateAll();
+    const meta = {
+      companyName: document.getElementById('companyName').value || 'Company',
+      industry: document.getElementById('industry').value || '',
+      currency: document.getElementById('currency').value || '$',
+      units: document.getElementById('units').value || '1000000',
+      exportedAt: new Date().toISOString()
+    };
+    
+    let csv = '';
+    csv += buildCSVSection('Metadata', ['Field','Value'], Object.entries(meta));
+    
+    const inputRows = companyData.map(r => [
+      r.year, r.revenue, r.operatingMargin, derivedOperatingIncome(r).toFixed(0), 
+      r.netIncome, r.interestExpense, r.taxRate, r.workingCapital, 
+      r.longTermDebt, r.shareholderEquity, r.sharesOutstanding,
+      r.capexPerShare, derivedCapex(r).toFixed(0), r.depreciation
+    ]);
+    csv += buildCSVSection('Input Data',
+      ['Year','Revenue','Operating Margin (%)','Operating Income','Net Income','Interest Expense','Tax Rate (%)','Working Capital','Long-Term Debt','Shareholder Equity','Shares Outstanding','Capital Spending per Share','CapEx','Depreciation'],
+      inputRows
+    );
+    
+    const coe = calculateCostOfEquity();
+    const assumptionRows = [
+      ['Risk-Free Rate (%)', waccSettings.riskFreeRate],
+      ['Beta', waccSettings.beta],
+      ['Market Return (%)', waccSettings.marketReturn],
+      ['Cost of Equity (CAPM) (%)', coe.toFixed(1)]
+    ];
+    csv += buildCSVSection('WACC Settings', ['Item','Value'], assumptionRows);
+    
+    const economicRows = companyData.map(r => {
+      const c = computeYearCalcs(r);
+      return [r.year, c.nopat.toFixed(0), c.investedCapital.toFixed(0), 
+              c.roic.toFixed(1), c.wacc.toFixed(1), c.spread.toFixed(1), c.economicProfit.toFixed(0)];
+    });
+    csv += buildCSVSection('Economic Profit', 
+      ['Year','NOPAT','Invested Capital','ROIC (%)','WACC (%)','Spread (%)','Economic Profit'], 
+      economicRows
+    );
+    
+    const companyNameSafe = (meta.companyName || 'Company').replace(/[^a-z0-9]/gi, '_');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; 
+    a.download = `${companyNameSafe}_Moat_Export.csv`;
+    document.body.appendChild(a); 
+    a.click(); 
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  }
+
+  function init() { 
+    initializeData(); 
+    recalculateAll(); 
+  }
+
+  return {
+    init,
+    addYear,
+    removeLastYear,
+    updateData,
+    recalculateAll,
+    showSheet,
+    saveAnalysis,
+    loadAnalysis,
+    exportData,
+    generateReport,
+    printReport
+  };
+})();
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', window.moatAnalysis.init);
+} else {
+  window.moatAnalysis.init();
+}
+</script>
+</body>
+</html>
